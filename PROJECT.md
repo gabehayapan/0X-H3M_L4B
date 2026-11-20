@@ -1,0 +1,140 @@
+# PROJECT.md - ケミカル・コンピューティング：現状と課題
+
+> 最終更新: 2026-11-15
+> 本ファイルはプロジェクトの背景・現状整理・課題一覧をまとめる。詳細な調査ノートは `RESEARCH_NOTES.md`、作業単位は `ISSUES.md` に記録する（いずれも未作成）。
+> ⚠️ 下記の調査は初回の概観調査（Web検索ベース、主に論文アブストラクトレベル）であり、各項目は原著論文の精読で裏付けが必要。
+
+---
+
+## 1. 背景
+
+化学物質のダイナミクスを情報処理に使う「ケミカル・コンピューティング」は、大きく以下の系統に分かれる。
+
+| 系統 | 情報の担い手 | 代表的な実証 | 本プロジェクトとの関係 |
+|---|---|---|---|
+| A. 分子論理ゲート / 分子スイッチ | 分子の異性体状態（光・熱・pHで切替） | アゾベンゼン、ジアリールエテン、ジヒドロピレン等のフォトクロミック分子による光論理ゲート | DB物性（HOMO-LUMO等）から候補探索しやすい。フェーズ2〜6に直結 |
+| B. 反応拡散系 (Reaction-Diffusion) | 濃度波・興奮波の有無 | BZ反応の波の衝突による論理ゲート、半加算器 | 偏微分方程式シミュレーション（フェーズ5）向き |
+| C. 化学リザバー計算 | 複雑反応ネットワークの濃度時系列 | ホルモース反応をCSTRで動かし、非線形分類・時系列予測を実証（Baltussen et al., *Nature* 2024） | 「分子を設計しない」アプローチ。ODEシミュレーションで再現可能 |
+| D. DNA鎖置換 (DSD) 回路 | DNA鎖の濃度 | 論理回路、ニューラルネット（winner-take-all分類器等） | 最も成熟しているが、量子化学DBとの接点は小さい |
+
+---
+
+## 2. 現状の整理（2024〜2026年時点）
+
+### 2.1 化学リザバー計算
+- ホルモース反応による化学リザバーは、分子レベルの精密設計なしに複数の非線形分類と時系列予測を並列実行できることを示した原理実証である。
+- 2025年時点の報道では「省エネルギーな専用計算器」としての期待が語られているが、エネルギー効率の優位性は**実証されていない主張**である。
+- EUプロジェクト(CORENET)で別の反応ネットワークへの一般化研究が進行中とされるが、論文は未確認。
+
+### 2.2 反応拡散系（BZ反応）
+- 1990年代から波の衝突を利用した論理ゲートや小規模回路が実験で示されている。
+- 既知の限界: 拡散律速による**低速性**、構造の**専用化（固定アーキテクチャ）**、制御の難しさ。電子回路で反応拡散挙動を模倣した方が効率的という指摘もある。
+
+### 2.3 分子スイッチ・分子論理ゲート
+- フォトクロミック分子（スチルベン、アゾベンゼン、ジアリールエテン、ジメチルジヒドロピレン）の可逆切替で論理ゲートを構成する研究が継続（例: 2025年 *Chem. Sci.* のジヒドロピレン–アゾベンゼン二量体による薄膜光論理ゲート）。
+- 機械学習による光スイッチ探索も進展:
+  - 多出力ガウス過程で市販分子ライブラリをスクリーニングし実験検証（*Chem. Sci.* 2022）
+  - 機械学習ポテンシャルでアゾベンゼン誘導体の熱緩和半減期を仮想スクリーニング（2022）
+  - 構造情報のみから可視光アゾスイッチの λmax と熱半減期を予測（*J. Cheminform.* 2025）
+- **ギャップ**: 「論理ゲートとしての性能」を目的関数にしたML探索、特にジアリールエテン系では該当研究を見つけられなかった。
+
+### 2.4 DNA計算
+- 論理回路、多層パーセプトロン、SVM、Hopfield、CNNまでDSDで実装例がある。
+- 2025年のレビューでは、実用化に向けた課題（リーク反応、スケーリング、細胞内動作）とナノポアによる読み出しが論点となっている。
+
+### 2.5 量子アルゴリズム（VQE等）
+- **バレンプラトー**（勾配消失）がハードウェア効率型アンザッツのスケーリングを阻む主要因とされる（2025年の統計的解析）。
+- バレンプラトーを回避できる回路は**古典的にシミュレート可能**な場合がある、という指摘もあり、量子優位性が疑問視されている。
+- 研究の流れはサンプルベース量子対角化(SQD)などの派生手法や、誤り耐性量子計算を前提とした再評価に移りつつある。
+
+### 2.6 データベースとライセンス
+- QM9: CC0とする二次情報と、CC BY-NC-SA 4.0とする二次情報が**矛盾**している。Figshareの原本の確認が必要。
+- Materials Project（CC BY 4.0とされる）とPubChem（パブリックドメインとされる）も、確認できたのは二次情報のみ。
+- QM9は最大9重原子の小分子で、多くの光スイッチ骨格（アゾベンゼンは12重原子）を**含まない**。これは物性値のカバー範囲としても問題になる。
+
+---
+
+## 3. 残された問題・改善点
+
+### 3.1 分野全体の課題
+| # | 課題 | 内容 |
+|---|---|---|
+| P1 | **カスケード性・信号の再生** | 出力を次段ゲートの入力に使えるか（同じ物理量・十分なゲイン・ファンアウト）。分子ゲート単体の実証は多いが、多段接続は少ない（一般的に知られた論点。本調査では原著未確認） |
+| P2 | **速度** | 拡散律速・反応律速で電子回路より桁違いに遅い |
+| P3 | **読み出し(I/O)** | 分光・FTIR・ナノポアなど外部計測に頼り、システムレベルの評価が難しい |
+| P4 | **リセット・可逆性・疲労** | スイッチの繰り返し耐性、熱緩和による状態の消失（状態保持時間 = メモリ寿命） |
+| P5 | **スケーリングとクロストーク** | DSDのリーク反応、反応ネットワーク中の副反応 |
+| P6 | **ベンチマークの欠如** | 系統間で速度・エネルギー・精度を比べる共通指標がない。省エネルギーの主張も未検証 |
+
+### 3.2 計算科学（本プロジェクトの範囲）の課題
+| # | 課題 | 内容 |
+|---|---|---|
+| C1 | **「論理ゲート適性」の定量指標がない** | HOMO-LUMOギャップ等の基本物性と、ゲート性能（ON/OFF比、切替エネルギー障壁、状態寿命）を結ぶ写像が未定義 |
+| C2 | **DBと対象分子のミスマッチ** | QM9は小さすぎる。光スイッチ用のデータセット（実験λmax、熱半減期）が別途必要 |
+| C3 | **基底状態の物性だけでは不十分** | 光スイッチは励起状態・円錐交差のダイナミクスが本質。DFTの基底状態値（QM9等）では切替能力を予測できない |
+| C4 | **ライセンスの不確実性** | QM9のライセンス矛盾。派生データの再配布条件が不明確 |
+| C5 | **量子アルゴリズムの有用性** | このプロジェクトの規模ではVQEが古典計算に勝つ見込みは低い。学習目的と実用目的を分けて位置付ける必要がある |
+| C6 | **シミュレーションと実験の距離** | ODE/PDEモデルのパラメータ（速度定数、拡散係数）の出所と不確かさの扱い |
+
+---
+
+## 4. 取り組めることのリスト（Issue候補）
+
+各項目は AGENTS.md の「1 Issue = 15〜30分で理解・検証できる」粒度を目安にしている。**未着手・未合意の候補**であり、着手順はユーザーと相談して決める。
+
+### フェーズ1: 原理定義
+- [ ] **I-01** 4系統（A〜D）を「速度・状態保持・カスケード性・シミュレーション容易性・DB接続性」で比較する1ページ表を作り、主軸アプローチを1つに絞る（→ P1, P2, P6）
+- [ ] **I-02** 2状態分子スイッチを1次元二重井戸ポテンシャルでモデル化し、障壁高さ ΔE‡ [eV] からアレニウス式で熱緩和寿命を計算・可視化する（→ P4, C1）
+- [ ] **I-03** 「分子論理ゲート適性スコア」の候補指標（ON/OFF比、ΔE‡、吸収波長分離）を数式で定義したドキュメントを作る（→ C1）
+
+### フェーズ2: DB・権利調査
+- [ ] **I-04** QM9 / Materials Project / PubChem の公式ライセンスを一次情報で確認し、比較表を作る（→ C4）
+- [ ] **I-05** 光スイッチ専用データセット（例: Chem. Sci. 2022のphotoswitchデータセット）の有無・規模・ライセンスを調べる（→ C2）
+
+### フェーズ3: データ取得
+- [ ] **I-06** QM9から10分子だけ取得し、SMILESとHOMO-LUMOギャップを表示する最小スクリプト（キャッシュと出典メタデータ付き）
+- [ ] **I-07** QM9の重原子数分布を可視化し、光スイッチ骨格がカバー範囲外であることを定量的に確認する（→ C2）
+
+### フェーズ4: 探索
+- [ ] **I-08** 光スイッチデータセットで、λmaxをフィンガープリント＋ガウス過程で予測する最小ベースライン（→ C2）
+- [ ] **I-09** H₂分子（2量子ビット）のVQEをNumPyの行列演算だけで実装し、厳密対角化と比べる（学習目的と位置付ける。→ C5）
+
+### フェーズ5: 動作検証シミュレーション
+- [ ] **I-10** 2入力の反応ネットワーク（質量作用則のODE）でAND/ORゲートの定常応答をSciPyでシミュレートする（→ C6）
+- [ ] **I-11** 2ゲートを直列に接続し、出力濃度が次段の閾値を満たすか（カスケード性）を検証する（→ P1）
+- [ ] **I-12** 小さなランダム反応ネットワークでリザバー計算を再現し、簡単な時系列タスク（例: NARMA）で線形読み出しを学習する（→ P6）
+- [ ] **I-13** 1次元の FitzHugh–Nagumo 型反応拡散モデルで波の伝播と衝突（AND動作）をシミュレートし、伝播速度を測る（→ P2）
+
+### フェーズ6: 最適化・新規生成
+- [ ] **I-14** I-03 のスコアを目的関数にして、小規模な候補集合でベイズ最適化のループを回す最小例（I-03, I-08 の完了後）
+
+### 推奨する最初の3つ
+1. **I-01**（アプローチの絞り込み）: 以降のすべてのIssueの優先度を決めるため
+2. **I-04**（ライセンス確認）: データを触る前の前提条件
+3. **I-02**（二重井戸モデル）: 「状態保持」という最も基本的な物理を手を動かして理解できる
+
+---
+
+## 5. 参考文献（初回調査で参照）
+
+- Baltussen et al., "Chemical reservoir computation in a self-organizing reaction network", *Nature* 631 (2024) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11254755/
+- 化学リザバーの報道 (2025) — https://ioplus.nl/en/posts/the-chemical-computer-an-energy-efficient-computing-alternative
+- CORENET (EU CORDIS) — https://cordis.europa.eu/article/id/466718-new-approaches-to-computational-power/de
+- DNA strand displacement based computational systems and their applications — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9992816/
+- Gines et al., DNA computing tutorial review, *Chem. Soc. Rev.* 54 (2025) — https://pubs.rsc.org/en/content/articlepdf/2025/cs/d3cs00396e
+- DSD neural network architectures review, *Front. Genet.* (2023) — https://www.frontiersin.org/journals/genetics/articles/10.3389/fgene.2023.1120791/pdf
+- Adamatzky et al., BZ and Physarum computers — https://arxiv.org/pdf/0711.2711
+- BZ encapsulated vesicles — https://arxiv.org/pdf/1009.2044
+- BZ computing and thermodynamic limits, *Front. Chem.* (2021) — https://www.frontiersin.org/journals/chemistry/articles/10.3389/fchem.2021.611120/pdf
+- Dihydropyrene–azobenzene photonic logic gate, *Chem. Sci.* (2025) — https://pubs.rsc.org/en/content/articlehtml/2025/sc/d5sc02467f
+- Data-driven discovery of molecular photoswitches with multioutput GPs, *Chem. Sci.* (2022) — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9682911/
+- Azobenzene thermal half-life virtual screening with ML potential — https://arxiv.org/pdf/2207.11592
+- Excited-state dynamics of photoswitches with ML potential — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9200747/
+- Visible-light azo-photoswitch property prediction, *J. Cheminform.* (2025) — https://biomedcentral-jcheminf.publicaciones.saludcastillayleon.es/counter/pdf/10.1186/s13321-025-00993-7.pdf
+- Barren plateau statistical analysis (2025) — https://arxiv.org/html/2508.08915v1
+- Barren plateau survey — https://arxiv.org/pdf/2407.17706v2
+- VQA review toward fault tolerance (2026) — https://arxiv.org/pdf/2604.07909
+- VQE review (2021) — https://arxiv.org/pdf/2111.05176v2
+- Quantum computing for chemical applications (chemRxiv 2025) — https://www.cambridge.org/engage/chemrxiv/article-details/68b92f9123be8e43d6deb787
+- QM9 license info (二次情報) — https://jla-gardner.github.io/load-atoms/datasets/QM9.html , https://hunterheidenreich.pages.dev/notes/chemistry/datasets/qm9/
+- Materials & Chemistry Datasets (二次情報) — https://thangckt.github.io/blog/2025/04/21/materials--chemistry-datasets
