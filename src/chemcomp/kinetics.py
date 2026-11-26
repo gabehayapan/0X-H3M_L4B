@@ -60,6 +60,33 @@ def analytic_segment(p_b0: float, rates: Rates, t: np.ndarray) -> np.ndarray:
     return p_eq + (p_b0 - p_eq) * np.exp(-(rates.k_ab + rates.k_ba) * t)
 
 
+@dataclass(frozen=True)
+class Segment:
+    """操作の1区間（この間は速度定数が一定）。"""
+
+    label: str  # 区間の名前（例: "write", "hold", "erase"）
+    duration_s: float  # 区間の長さ [s]
+    rates: Rates  # この区間の速度定数（光の有無・色で変わる）
+
+
+def simulate_protocol(p_b0: float, segments: list[Segment],
+                      points_per_segment: int = 200) -> tuple[np.ndarray, np.ndarray, list[float]]:
+    """区間を順番につないでシミュレートする（前の区間の最後の p_B が次の区間の初期値）。
+
+    戻り値: (時刻 [s], p_B, 各区間の終わりの p_B のリスト)
+    """
+    times, values, ends = [np.array([0.0])], [np.array([p_b0])], []
+    t0, p = 0.0, p_b0
+    for seg in segments:
+        t_local = np.linspace(0.0, seg.duration_s, points_per_segment)
+        p_seg = simulate_segment(p, seg.rates, t_local)
+        times.append(t0 + t_local[1:])
+        values.append(p_seg[1:])
+        t0, p = t0 + seg.duration_s, float(p_seg[-1])
+        ends.append(p)
+    return np.concatenate(times), np.concatenate(values), ends
+
+
 def time_to_threshold(p_b_start: float, rates_dark: Rates, threshold: float) -> float:
     """暗所で p_B が threshold を下回るまでの時間 [s]（「1」と読めなくなるまでの時間）。
 

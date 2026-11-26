@@ -34,3 +34,33 @@ def test_barrier_difference_equals_well_difference():
     pts = stationary_points(eb, d)
     well_gap = potential(pts["min_B"], eb, d) - potential(pts["min_A"], eb, d)
     assert forward_barrier_ev(eb, d) - reverse_barrier_ev(eb, d) == pytest.approx(well_gap)
+
+
+# ---------- M1-05: 区間をつなぐシミュレーション ----------
+
+from chemcomp.kinetics import Segment, simulate_protocol  # noqa: E402
+
+
+def test_protocol_matches_piecewise_analytic():
+    # 2区間をつないだ結果が、解析解を2回つないだものと一致する
+    light, dark = Rates(k_ab=1.0, k_ba=0.1), Rates(k_ab=0.0, k_ba=0.01)
+    _, _, ends = simulate_protocol(0.0, [Segment("w", 5.0, light), Segment("h", 50.0, dark)])
+    p1 = analytic_segment(0.0, light, np.array([5.0]))[0]
+    p2 = analytic_segment(p1, dark, np.array([50.0]))[0]
+    assert ends == pytest.approx([p1, p2], abs=1e-6)
+
+
+def test_protocol_time_axis_is_continuous():
+    seg = Rates(k_ab=1.0, k_ba=1.0)
+    t, p, _ = simulate_protocol(0.0, [Segment("a", 2.0, seg), Segment("b", 3.0, seg)], points_per_segment=11)
+    assert t[0] == 0.0 and t[-1] == pytest.approx(5.0)
+    assert np.all(np.diff(t) > 0)  # 時刻が単調に増える（区間の境目で重複しない）
+    assert len(t) == len(p) == 1 + 2 * 10
+
+
+def test_erase_light_drives_below_threshold():
+    # 消去光の到達点が 0.5 より下なら、十分長く当てれば「0」に戻る
+    erase = Rates(k_ab=0.0087, k_ba=0.039)
+    _, _, ends = simulate_protocol(0.9, [Segment("erase", 200.0, erase)])
+    assert ends[-1] == pytest.approx(erase.p_b_equilibrium, abs=1e-3)
+    assert ends[-1] < 0.5
