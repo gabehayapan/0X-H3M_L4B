@@ -67,6 +67,9 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
   echo "[Run ${ITER_ID}/${MAX_ITERATIONS}] メインセッションからフォークして実行中..."
   echo "============================================================"
 
+  # 実行前の HEAD を記録（「本当にコミットされたか」の判定に使う）
+  HEAD_BEFORE=$(git rev-parse HEAD)
+
   if claude -p "$PROMPT" \
     --resume "$MAIN_SESSION_ID" \
     --fork-session \
@@ -84,8 +87,27 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
       exit 0
     fi
 
-    echo -e "${ITER_ID}\t${FORKED_SESSION_ID}\tSUCCESS" >> "$SESSION_MAP_FILE"
-    echo "[Run ${ITER_ID}] 1件の Issue を処理しました。(Forked Session: ${FORKED_SESSION_ID})"
+    # claude が正常終了しても、コミットが増えていなければ Issue は完了していない
+    # （権限不足で pytest / git commit が拒否された場合など）。次の実行も同じ所で止まるので打ち切る
+    HEAD_AFTER=$(git rev-parse HEAD)
+    if [[ "$HEAD_AFTER" == "$HEAD_BEFORE" ]]; then
+      echo -e "${ITER_ID}\t${FORKED_SESSION_ID}\tNO_COMMIT" >> "$SESSION_MAP_FILE"
+      echo "[Run ${ITER_ID}] claude は終了しましたが、新しいコミットがありません。(Session: ${FORKED_SESSION_ID})"
+      if [[ -n "$(git status --porcelain)" ]]; then
+        echo "未コミットの変更が残っています:"
+        git status --short
+      fi
+      echo "ログを確認してください: ${LOG_FILE}"
+      exit 1
+    fi
+
+    echo -e "${ITER_ID}\t${FORKED_SESSION_ID}\tSUCCESS\t${HEAD_AFTER}" >> "$SESSION_MAP_FILE"
+    echo "[Run ${ITER_ID}] 1件の Issue を処理しました。(Commit: ${HEAD_AFTER:0:7}, Forked Session: ${FORKED_SESSION_ID})"
+    # コミット後に変更が残っていれば警告（次の実行は作業ツリーが汚れた状態で始まる）
+    if [[ -n "$(git status --porcelain)" ]]; then
+      echo "警告: コミット後も未コミットの変更が残っています:"
+      git status --short
+    fi
   else
     FORKED_SESSION_ID=$(jq -r '.session_id // "unknown"' "$LOG_FILE" 2>/dev/null || echo "unknown")
     echo -e "${ITER_ID}\t${FORKED_SESSION_ID}\tFAILED" >> "$SESSION_MAP_FILE"
